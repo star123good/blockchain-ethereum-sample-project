@@ -16,12 +16,37 @@ let campaign;
 beforeEach(async () => {
     accounts = await web3.eth.getAccounts();
     
-    factory = await web3.eth.Contract(
+    factory = await new web3.eth.Contract(
         JSON.parse(compiledFactory.interface)
     ).deploy({
         data: compiledFactory.bytecode
     }).send({
         from: accounts[0],
         gas: '1000000'
+    });
+
+    await factory.methods.createCampaign('100').send({
+        from: accounts[0],
+        gas: '1000000'
+    });
+
+    [campaignAddress] = await factory.methods.getDeployedCampaigns().call();
+
+    campaign = await new web3.eth.Contract(
+        JSON.parse(compiledCampaign.interface),
+        campaignAddress
+    );
+});
+
+
+describe('Campaign', () => {
+    it('deploys a factory and a campaign', () => {
+        assert.ok(factory.options.address);
+        assert.ok(campaign.options.address);
+    });
+
+    it('marker caller as the campaign manager', async () => {
+        const manager = await campaign.methods.manager().call();
+        assert.strictEqual(accounts[0], manager);
     });
 });
